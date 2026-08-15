@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QR & Video Toolkit</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>QR &amp; Video Toolkit</h1>
+      <p class="subtitle">Docker Compose demo — Caddy → frontend / backend → MariaDB</p>
+
+      <section class="card">
+        <h2>1) แปลง URL เป็น QR Code</h2>
+        <input id="qr-url" type="text" placeholder="https://example.com" />
+        <button id="qr-btn">สร้าง QR Code</button>
+        <div id="qr-result" class="result"></div>
+      </section>
+
+      <section class="card">
+        <h2>2) ดาวน์โหลดวิดีโอ</h2>
+        <input id="dl-url" type="text" placeholder="วางลิงก์วิดีโอที่นี่" />
+        <div class="radio-group">
+          <label><input type="radio" name="format" value="video" checked /> วิดีโอ (.mp4)</label>
+          <label><input type="radio" name="format" value="audio" /> เสียงเท่านั้น (.mp3)</label>
+        </div>
+        <button id="dl-btn">ดาวน์โหลด</button>
+        <div id="dl-result" class="result"></div>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

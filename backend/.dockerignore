@@ -1,0 +1,4 @@
+node_modules
+downloads
+src/qrcodes
+.env

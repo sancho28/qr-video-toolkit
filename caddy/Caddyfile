@@ -1,0 +1,15 @@
+# Caddyfile — Caddy เป็น reverse proxy ตัวเดียวที่ publish port ออก host จริง
+# frontend/backend ไม่เปิด port ออก host เลย เข้าถึงได้เฉพาะผ่าน Caddy เท่านั้น
+
+:80 {
+    # request ที่ path ขึ้นต้นด้วย /api/ ส่งต่อไปที่ container "backend"
+    # (docker-compose ตั้งชื่อ service เป็น DNS name ในเครือข่ายเดียวกันให้เอง)
+    handle /api/* {
+        reverse_proxy backend:3000
+    }
+
+    # request อื่นๆ ทั้งหมด (หน้าเว็บ/static asset) ส่งไปที่ container "frontend"
+    handle {
+        reverse_proxy frontend:80
+    }
+}

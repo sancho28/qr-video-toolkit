@@ -1,0 +1,116 @@
+# =============================================================================
+# docker-compose.yml — qr-video-toolkit
+#
+# 4 containers ทำงานร่วมกัน:
+#   caddy    (official image)         reverse proxy จุดเดียวที่เปิดออก host
+#   frontend (custom Dockerfile)      static HTML/CSS/JS
+#   backend  (custom Dockerfile)      Node.js/Express + yt-dlp + ffmpeg
+#   db       (official image)         MariaDB
+#
+# Flow: browser → caddy → {frontend, backend} → backend → db
+# ดู docs/system-diagram.md สำหรับ diagram แบบ Mermaid เต็มรูปแบบ
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # caddy: จุดเข้าเดียวของทั้งระบบ ใช้ official image ตรงๆ (ไม่ต้องเขียน
+  # Dockerfile เอง เพราะ config ทั้งหมดอยู่ใน Caddyfile ที่ mount เข้าไปพอ)
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    container_name: qr-video-caddy
+    restart: unless-stopped
+    ports:
+      # พอร์ตเดียวที่ publish ออกสู่เครื่อง host จริง
+      - "8080:80"
+    volumes:
+      # mount ไฟล์ config แบบ read-only (:ro) — Caddy ไม่ควรแก้ไฟล์นี้เอง
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - toolkitnet
+
+  # ---------------------------------------------------------------------------
+  # frontend: static site, build จาก Dockerfile ของเราเองที่ ./frontend/Dockerfile
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: qr-video-frontend
+    restart: unless-stopped
+    networks:
+      - toolkitnet
+    # ไม่ publish port ออก host — เข้าถึงได้เฉพาะผ่าน caddy ใน network เดียวกัน
+
+  # ---------------------------------------------------------------------------
+  # backend: Node.js + Express + yt-dlp/ffmpeg, build จาก Dockerfile ของเราเอง
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qr-video-backend
+    restart: unless-stopped
+    environment:
+      # ทุกค่าอ่านจากไฟล์ .env ข้างๆ compose file นี้ (ดู .env.example)
+      DB_HOST: db          # ชื่อ service "db" = DNS name ภายใน network เดียวกัน
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      PORT: "3000"
+    volumes:
+      # named volume แยกสำหรับไฟล์วิดีโอ/เสียงที่ดาวน์โหลด และไฟล์ QR — กัน
+      # ข้อมูลหายเวลา container ถูกลบ/สร้างใหม่ (rebuild image ไม่ลบไฟล์เหล่านี้)
+      - downloads_data:/app/downloads
+      - qrcodes_data:/app/src/qrcodes
+    depends_on:
+      db:
+        # รอจน MariaDB พร้อมรับ connection จริง (healthcheck ผ่าน) ก่อนค่อย
+        # start backend — กัน race condition ตอนทั้งชุด container ขึ้นพร้อมกัน
+        condition: service_healthy
+    networks:
+      - toolkitnet
+    # ไม่ publish port ออก host — caddy เท่านั้นที่คุยกับ backend ได้โดยตรง
+
+  # ---------------------------------------------------------------------------
+  # db: MariaDB — official image ตรงๆ (custom Dockerfile 2 ตัวของโปรเจกต์นี้
+  # อยู่ที่ backend/ กับ frontend/ ซึ่งเกินเงื่อนไข "อย่างน้อย 1 image" อยู่แล้ว)
+  # ---------------------------------------------------------------------------
+  db:
+    image: mariadb:11
+    container_name: qr-video-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      # สร้าง user แยกสำหรับ backend แทนการใช้ root ตรงๆ (least privilege)
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      # persist ข้อมูลข้าม `docker compose down` ธรรมดา (หายเฉพาะตอนสั่ง
+      # `docker compose down -v` เท่านั้น)
+      - db_data:/var/lib/mysql
+    healthcheck:
+      # สคริปต์ที่มากับ official mariadb image เช็คว่า MySQL protocol พร้อม
+      # รับ connection จริงและ InnoDB init เสร็จแล้ว ไม่ใช่แค่ process เริ่ม
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - toolkitnet
+    # ไม่ publish port ออก host — เข้าถึงได้เฉพาะจาก container อื่นใน
+    # network เดียวกัน (backend) เท่านั้น ลด attack surface
+
+# ===========================================================================
+networks:
+  toolkitnet:
+    driver: bridge
+
+volumes:
+  db_data:
+  downloads_data:
+  qrcodes_data:
