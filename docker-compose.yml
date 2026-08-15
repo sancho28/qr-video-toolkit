@@ -89,6 +89,12 @@ services:
       # สร้าง user แยกสำหรับ backend แทนการใช้ root ตรงๆ (least privilege)
       MARIADB_USER: ${DB_USER}
       MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_PORT: "3306"
+    ports:
+      # เปิดออก host เพื่อให้ต่อจาก DB client ภายนอก (เช่น VSCode) ได้ —
+      # ปกติไม่ publish port นี้ (ดู comment ท้าย service) แต่เปิดชั่วคราวไว้
+      # ใช้พัฒนา/debug บนเครื่องนี้เท่านั้น
+      - "3306:3306"
     volumes:
       # persist ข้อมูลข้าม `docker compose down` ธรรมดา (หายเฉพาะตอนสั่ง
       # `docker compose down -v` เท่านั้น)

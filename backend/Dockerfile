@@ -9,10 +9,11 @@ FROM node:20-alpine
 # ffmpeg: yt-dlp ใช้ merge video+audio stream ที่แยกกันมา หรือแปลง audio
 #         เป็น mp3 ตอนเลือกโหมด "เสียงเท่านั้น"
 # curl:   ใช้ดาวน์โหลดตัว yt-dlp binary ในบรรทัดถัดไป (ใช้ครั้งเดียวตอน build)
-RUN apk add --no-cache ffmpeg curl
+RUN apk add --no-cache ffmpeg curl python3
 
-# ดึง yt-dlp เวอร์ชันล่าสุดมาเป็น standalone binary วางไว้ใน PATH ตรงๆ —
-# ไม่ต้องติดตั้ง Python แยกต่างหาก (ต่างจากการ pip install yt-dlp)
+# ดึง yt-dlp เวอร์ชันล่าสุดมาวางไว้ใน PATH ตรงๆ (ไฟล์นี้เป็น Python zipapp
+# ต้องมี python3 ในระบบถึงจะรันได้ — ตัว yt-dlp_linux ที่เป็น standalone
+# binary จริงๆ นั้น build มาสำหรับ glibc รันบน alpine (musl) ไม่ได้)
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
       -o /usr/local/bin/yt-dlp \
     && chmod +x /usr/local/bin/yt-dlp

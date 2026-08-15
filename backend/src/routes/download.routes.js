@@ -21,7 +21,7 @@ router.post('/', async (req, res) => {
 
   try {
     const { fileName } = await downloadMedia(url, format);
-    await pool.query('UPDATE downloads SET file_name = ?, status = ? WHERE id = ?', ['done', fileName, recordId]);
+    await pool.query('UPDATE downloads SET file_name = ?, status = ? WHERE id = ?', [fileName, 'done', recordId]);
     res.json({ file_url: `/api/download/file/${fileName}` });
   } catch (err) {
     await pool.query('UPDATE downloads SET status = ? WHERE id = ?', ['failed', recordId]);
