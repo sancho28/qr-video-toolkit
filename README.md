@@ -68,12 +68,3 @@ docker compose down -v
 | POST | `/api/download` | `{url, format:"video"\|"audio"}` → เรียก yt-dlp |
 | GET | `/api/download/file/:fileName` | ดาวน์โหลดไฟล์ผลลัพธ์ |
 | GET | `/api/download/history` | ประวัติการดาวน์โหลดล่าสุด 20 รายการ |
-
-## Trade-off ที่ตั้งใจตัดออก (เพื่อความง่ายในการบรรยาย/สาธิต)
-
-- ดาวน์โหลดแบบ **synchronous** (รอจนเสร็จค่อยตอบกลับ) — เหมาะกับคลิปสั้นๆ
-  ตอนสาธิต ถ้าจะใช้จริงกับคลิปยาวควรทำเป็น background job + websocket
-  แจ้ง progress แทน
-- ไม่มีระบบ auth/rate-limit — เป็นโปรเจกต์สาธิต ไม่ใช่ production
-- frontend เป็น static HTML/CSS/JS ธรรมดา ไม่ใช้ framework ที่ต้อง build
-  step เพื่อให้ Dockerfile เรียบง่ายพอจะบรรยายทุกบรรทัดได้ในเวลาจำกัด
