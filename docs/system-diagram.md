@@ -61,9 +61,11 @@ sequenceDiagram
 
 ## เหตุผลของสถาปัตยกรรม (สรุปสั้น)
 
-- **caddy เป็นจุดเข้าเดียว** — publish port ออก host แค่ container เดียว
-  (`8080:80`) ส่วน `frontend`/`backend`/`db` ไม่เปิด port ออก host เลย ลด
-  attack surface และทำให้ browser เห็นแค่ origin เดียว ไม่ต้องยุ่งกับ CORS
+- **caddy เป็นจุดเข้าเดียวของ traffic ในแอป** — publish port ออก host แค่
+  container เดียว (`8080:80`) ส่วน `frontend`/`backend` ไม่เปิด port ออก
+  host เลย ลด attack surface และทำให้ browser เห็นแค่ origin เดียว ไม่ต้อง
+  ยุ่งกับ CORS (`db` เปิด `3306` ออก host เพิ่มเป็นข้อยกเว้นเดียว เพื่อให้ต่อ
+  จาก DB client บนเครื่อง เช่น VSCode ได้ตรงๆ)
 - **backend ↔ db ผ่าน internal network + user แยกจาก root** — `db` ใช้
   `MARIADB_USER`/`MARIADB_PASSWORD` แทนการต่อด้วย root ตรงๆ ตามหลัก
   least-privilege

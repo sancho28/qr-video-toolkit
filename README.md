@@ -17,6 +17,7 @@ flowchart LR
     Caddy -- "/*" --> Frontend["📦 frontend (nginx)<br/>custom Dockerfile"]
     Caddy -- "/api/*" --> Backend["📦 backend (Node+yt-dlp)<br/>custom Dockerfile"]
     Backend --> Db[("📦 db (MariaDB)<br/>official image")]
+    DBClient["🖥️ DB client เช่น VSCode<br/>localhost:3306"] --> Db
 ```
 
 ## โครงสร้างโปรเจกต์
@@ -63,8 +64,10 @@ docker compose down -v
 |---|---|---|
 | POST | `/api/qr` | `{url}` → สร้าง QR code, บันทึกลง MariaDB |
 | GET | `/api/qr/file/:fileName` | เสิร์ฟไฟล์ QR ที่สร้างไว้ |
+| GET | `/api/qr/history` | ประวัติ QR ที่สร้างล่าสุด 20 รายการ |
 | POST | `/api/download` | `{url, format:"video"\|"audio"}` → เรียก yt-dlp |
 | GET | `/api/download/file/:fileName` | ดาวน์โหลดไฟล์ผลลัพธ์ |
+| GET | `/api/download/history` | ประวัติการดาวน์โหลดล่าสุด 20 รายการ |
 
 ## Trade-off ที่ตั้งใจตัดออก (เพื่อความง่ายในการบรรยาย/สาธิต)
 

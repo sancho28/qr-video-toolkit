@@ -11,9 +11,9 @@ FROM node:20-alpine
 # curl:   ใช้ดาวน์โหลดตัว yt-dlp binary ในบรรทัดถัดไป (ใช้ครั้งเดียวตอน build)
 RUN apk add --no-cache ffmpeg curl python3
 
-# ดึง yt-dlp เวอร์ชันล่าสุดมาวางไว้ใน PATH ตรงๆ (ไฟล์นี้เป็น Python zipapp
-# ต้องมี python3 ในระบบถึงจะรันได้ — ตัว yt-dlp_linux ที่เป็น standalone
-# binary จริงๆ นั้น build มาสำหรับ glibc รันบน alpine (musl) ไม่ได้)
+# ดึง yt-dlp เวอร์ชันล่าสุดมาวางไว้ใน PATH ตรงๆ — ไฟล์นี้เป็น Python zipapp
+# จึงต้องมี python3 ในระบบด้วย (ตัว yt-dlp_linux standalone build มาสำหรับ
+# glibc ใช้บน alpine/musl ไม่ได้)
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
       -o /usr/local/bin/yt-dlp \
     && chmod +x /usr/local/bin/yt-dlp

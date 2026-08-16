@@ -89,11 +89,9 @@ services:
       # สร้าง user แยกสำหรับ backend แทนการใช้ root ตรงๆ (least privilege)
       MARIADB_USER: ${DB_USER}
       MARIADB_PASSWORD: ${DB_PASSWORD}
-      MARIADB_PORT: "3306"
     ports:
-      # เปิดออก host เพื่อให้ต่อจาก DB client ภายนอก (เช่น VSCode) ได้ —
-      # ปกติไม่ publish port นี้ (ดู comment ท้าย service) แต่เปิดชั่วคราวไว้
-      # ใช้พัฒนา/debug บนเครื่องนี้เท่านั้น
+      # ข้อยกเว้นเดียวจาก "caddy คือจุดเข้าเดียว" — เปิด 3306 ไว้ถาวรเพื่อให้
+      # ต่อจาก DB client บนเครื่อง (เช่น VSCode) ได้ตรงๆ
       - "3306:3306"
     volumes:
       # persist ข้อมูลข้าม `docker compose down` ธรรมดา (หายเฉพาะตอนสั่ง
@@ -108,8 +106,6 @@ services:
       retries: 10
     networks:
       - toolkitnet
-    # ไม่ publish port ออก host — เข้าถึงได้เฉพาะจาก container อื่นใน
-    # network เดียวกัน (backend) เท่านั้น ลด attack surface
 
 # ===========================================================================
 networks:
