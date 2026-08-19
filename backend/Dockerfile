@@ -34,4 +34,8 @@ RUN mkdir -p downloads src/qrcodes
 
 EXPOSE 3000
 
-CMD ["node", "src/server.js"]
+# yt-dlp ใช้ self-update (-U) ทุกครั้งที่ container เริ่ม/restart แทนที่จะ
+# ค้างอยู่กับเวอร์ชันตอน build image — เว็บต้นทาง (YouTube ฯลฯ) เปลี่ยน
+# extractor บ่อย เวอร์ชันเก่าจึงพังง่าย ถ้า self-update ล้มเหลว (เช่น
+# ไม่มีเน็ตตอน build/start) ใช้ "|| true" ให้ backend เริ่มรันต่อได้ปกติ
+CMD ["sh", "-c", "yt-dlp -U || true; exec node src/server.js"]

@@ -10,11 +10,18 @@ fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 // (เช่นคลิปของตัวเอง, Creative Commons, หรือเนื้อหาที่แพลตฟอร์มต้นทางอนุญาต)
 // เคารพ Terms of Service ของเว็บไซต์ต้นทางเสมอ
 
+// จำกัด retry/timeout ไว้ไม่ให้ค้างนานเกินไป — ค่า default ของ yt-dlp คือ
+// retries=10 + fragment-retries=10 พร้อม exponential backoff ซึ่งถ้าต้นทาง
+// บล็อก (เช่น 403 จาก bot-detection) จะค้างได้นานหลายนาทีโดยไม่มีอะไรคืบหน้า
+// เลย ค่าที่ตั้งนี้ทำให้ fail ภายในเวลาจำกัด ผู้ใช้จะได้เห็น error ชัดเจนเร็วขึ้น
+// แทนที่จะรอเงียบๆ — ไม่เกี่ยวกับการ bypass bot-detection แต่อย่างใด
+const FAIL_FAST_ARGS = ['--socket-timeout', '15', '--retries', '3', '--fragment-retries', '3'];
+
 // เรียก yt-dlp binary ผ่าน child_process แทนการเรียก HTTP API ของแพลตฟอร์ม
 // เอง — yt-dlp จัดการ extractor เฉพาะเว็บ/merge stream/แปลงไฟล์ให้ทั้งหมด
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
-    const proc = spawn('yt-dlp', args);
+    const proc = spawn('yt-dlp', [...args, ...FAIL_FAST_ARGS]);
     let stderr = '';
     proc.stderr.on('data', (chunk) => {
       stderr += chunk.toString();
