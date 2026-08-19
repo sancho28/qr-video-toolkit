@@ -41,7 +41,7 @@ qr-video-toolkit/
 cp .env.example .env
 # แก้รหัสผ่านใน .env เป็นของตัวเอง
 
-# build ทุก image ใหม่ทั้งหมดแบบไม่ใช้ cache (ให้เห็นทุก layer ตอนอัดคลิป)
+# build ทุก image ใหม่ทั้งหมดแบบไม่ใช้ cache (ให้เห็นทุก layer)
 docker compose build --no-cache
 
 docker compose up -d
