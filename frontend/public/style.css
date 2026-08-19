@@ -86,3 +86,51 @@ button:hover {
 .result a {
   color: #a5b4fc;
 }
+
+.card h3 {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.history-list li {
+  padding: 0.4rem 0;
+  border-top: 1px solid #334155;
+  overflow-wrap: anywhere;
+}
+
+.history-list li:first-child {
+  border-top: none;
+}
+
+.history-list a {
+  color: #a5b4fc;
+  text-decoration: none;
+}
+
+.history-list a:hover {
+  text-decoration: underline;
+}
+
+.history-time {
+  color: #64748b;
+}
+
+.history-status--failed {
+  color: #f87171;
+}
+
+.history-status--pending {
+  color: #facc15;
+}

@@ -9,13 +9,15 @@
   <body>
     <main>
       <h1>QR &amp; Video Toolkit</h1>
-      <p class="subtitle">Docker Compose demo — Caddy → frontend / backend → MariaDB</p>
 
       <section class="card">
         <h2>1) แปลง URL เป็น QR Code</h2>
         <input id="qr-url" type="text" placeholder="https://example.com" />
         <button id="qr-btn">สร้าง QR Code</button>
         <div id="qr-result" class="result"></div>
+
+        <h3>ประวัติล่าสุด</h3>
+        <ul id="qr-history" class="history-list"></ul>
       </section>
 
       <section class="card">
@@ -27,6 +29,9 @@
         </div>
         <button id="dl-btn">ดาวน์โหลด</button>
         <div id="dl-result" class="result"></div>
+
+        <h3>ประวัติล่าสุด</h3>
+        <ul id="dl-history" class="history-list"></ul>
       </section>
     </main>
     <script src="app.js"></script>

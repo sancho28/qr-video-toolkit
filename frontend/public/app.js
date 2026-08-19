@@ -4,6 +4,7 @@
 const qrBtn = document.getElementById('qr-btn');
 const qrUrlInput = document.getElementById('qr-url');
 const qrResult = document.getElementById('qr-result');
+const qrHistoryList = document.getElementById('qr-history');
 
 qrBtn.addEventListener('click', async () => {
   const url = qrUrlInput.value.trim();
@@ -19,14 +20,46 @@ qrBtn.addEventListener('click', async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'สร้าง QR ไม่สำเร็จ');
     qrResult.innerHTML = `<img src="${data.file_url}" alt="QR code" width="220" />`;
+    loadQrHistory();
   } catch (err) {
     qrResult.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
   }
 });
 
+async function loadQrHistory() {
+  qrHistoryList.textContent = '';
+  try {
+    const res = await fetch('/api/qr/history');
+    const rows = await res.json();
+    if (!res.ok) throw new Error(rows.message || 'โหลดประวัติไม่สำเร็จ');
+
+    rows.forEach((row) => {
+      const li = document.createElement('li');
+
+      const link = document.createElement('a');
+      link.href = `/api/qr/file/${row.file_name}`;
+      link.textContent = row.original_url;
+      link.target = '_blank';
+      li.appendChild(link);
+
+      const time = document.createElement('span');
+      time.className = 'history-time';
+      time.textContent = ` — ${new Date(row.created_at).toLocaleString('th-TH')}`;
+      li.appendChild(time);
+
+      qrHistoryList.appendChild(li);
+    });
+  } catch (err) {
+    const li = document.createElement('li');
+    li.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
+    qrHistoryList.appendChild(li);
+  }
+}
+
 const dlBtn = document.getElementById('dl-btn');
 const dlUrlInput = document.getElementById('dl-url');
 const dlResult = document.getElementById('dl-result');
+const dlHistoryList = document.getElementById('dl-history');
 
 dlBtn.addEventListener('click', async () => {
   const url = dlUrlInput.value.trim();
@@ -43,7 +76,47 @@ dlBtn.addEventListener('click', async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'ดาวน์โหลดไม่สำเร็จ');
     dlResult.innerHTML = `<a href="${data.file_url}" download>คลิกเพื่อดาวน์โหลดไฟล์</a>`;
+    loadDlHistory();
   } catch (err) {
     dlResult.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
   }
 });
+
+async function loadDlHistory() {
+  dlHistoryList.textContent = '';
+  try {
+    const res = await fetch('/api/download/history');
+    const rows = await res.json();
+    if (!res.ok) throw new Error(rows.message || 'โหลดประวัติไม่สำเร็จ');
+
+    rows.forEach((row) => {
+      const li = document.createElement('li');
+
+      const label = document.createElement(row.status === 'done' ? 'a' : 'span');
+      if (row.status === 'done') {
+        label.href = `/api/download/file/${row.file_name}`;
+      }
+      label.textContent = `[${row.format}] ${row.source_url}`;
+      li.appendChild(label);
+
+      const status = document.createElement('span');
+      status.className = `history-status history-status--${row.status}`;
+      status.textContent = ` (${row.status})`;
+      li.appendChild(status);
+
+      const time = document.createElement('span');
+      time.className = 'history-time';
+      time.textContent = ` — ${new Date(row.created_at).toLocaleString('th-TH')}`;
+      li.appendChild(time);
+
+      dlHistoryList.appendChild(li);
+    });
+  } catch (err) {
+    const li = document.createElement('li');
+    li.textContent = `เกิดข้อผิดพลาด: ${err.message}`;
+    dlHistoryList.appendChild(li);
+  }
+}
+
+loadQrHistory();
+loadDlHistory();
