@@ -39,6 +39,12 @@ async function ensureSchema() {
   await pool.query(`
     ALTER TABLE downloads ADD COLUMN IF NOT EXISTS quality VARCHAR(10) DEFAULT NULL
   `);
+
+  // เก็บชื่อวิดีโอจริง (ได้จาก yt-dlp ตอนดาวน์โหลด) แยกจาก file_name ที่เป็น
+  // UUID บนดิสก์ — ใช้ตั้งชื่อไฟล์ตอนเสิร์ฟให้ผู้ใช้ดาวน์โหลด (ดู download.routes.js)
+  await pool.query(`
+    ALTER TABLE downloads ADD COLUMN IF NOT EXISTS title VARCHAR(255) DEFAULT NULL
+  `);
 }
 
 // MariaDB อาจยัง initialize ไม่เสร็จตอน backend เริ่มรัน แม้ depends_on จะรอ

@@ -33,19 +33,43 @@ const EXTRACTOR_ARGS = ['--extractor-args', 'youtube:player_client=web_safari,mw
 
 // เรียก yt-dlp binary ผ่าน child_process แทนการเรียก HTTP API ของแพลตฟอร์ม
 // เอง — yt-dlp จัดการ extractor เฉพาะเว็บ/merge stream/แปลงไฟล์ให้ทั้งหมด
+// resolve คืน stdout ให้ด้วย (ใช้อ่านชื่อวิดีโอจาก --print ใน downloadMedia)
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
     const proc = spawn('yt-dlp', [...args, ...FAIL_FAST_ARGS, ...IMPERSONATE_ARGS, ...EXTRACTOR_ARGS]);
+    let stdout = '';
     let stderr = '';
+    proc.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
     proc.stderr.on('data', (chunk) => {
       stderr += chunk.toString();
     });
     proc.on('error', (err) => reject(err)); // เช่น หา binary ไม่เจอ
     proc.on('close', (code) => {
-      if (code === 0) resolve();
+      if (code === 0) resolve(stdout);
       else reject(new Error(`yt-dlp จบด้วย exit code ${code}: ${stderr.slice(-500)}`));
     });
   });
+}
+
+// ให้ yt-dlp พิมพ์ชื่อวิดีโอจริงออก stdout บรรทัดเดียว (-q + --no-warnings ตัด
+// progress/log อื่นทิ้งเพื่อให้ stdout มีแค่บรรทัดนี้ อ่าน parse ได้ตรงๆ) — เอา
+// ไปใช้ตั้งชื่อไฟล์ตอนเสิร์ฟให้ผู้ใช้ดาวน์โหลด แทนที่จะเป็น UUID อ่านไม่รู้เรื่อง
+// สำคัญ: --print เพียว ๆ จะ imply --simulate (ไม่ดาวน์โหลดไฟล์จริง แค่พิมพ์
+// ข้อมูลแล้วจบ) ต้องมี --no-simulate กำกับไว้เสมอ ไม่งั้นจะได้ exit code 0
+// พร้อมชื่อไฟล์ที่ไม่มีไฟล์จริงอยู่บนดิสก์
+const PRINT_TITLE_ARGS = ['-q', '--no-warnings', '--no-simulate', '--print', '%(title)s'];
+
+// ตัดอักขระที่ใช้เป็นชื่อไฟล์ไม่ได้ (Windows/Unix) และจำกัดความยาวกันชื่อยาว
+// เกินไปจนมีปัญหากับ path/header — คืน null ถ้าไม่เหลือชื่อที่ใช้ได้เลย
+function sanitizeTitleForFilename(title) {
+  const cleaned = title
+    .replace(/[/\\?%*:|"<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 150);
+  return cleaned || null;
 }
 
 // จำกัดความชัดด้วย height<=N แล้ว fallback ไป 'best' รวม (ไม่ระบุ height) ถ้า
@@ -66,22 +90,24 @@ async function downloadMedia(sourceUrl, format, quality = 'best') {
   const outputTemplate = path.join(DOWNLOAD_DIR, `${id}.%(ext)s`);
 
   if (format === 'audio') {
-    await runYtDlp([
+    const stdout = await runYtDlp([
       '-x', // extract audio เท่านั้น
       '--audio-format', 'mp3',
+      ...PRINT_TITLE_ARGS,
       '-o', outputTemplate,
       sourceUrl,
     ]);
-    return { id, fileName: `${id}.mp3` };
+    return { id, fileName: `${id}.mp3`, title: sanitizeTitleForFilename(stdout) };
   }
 
-  await runYtDlp([
+  const stdout = await runYtDlp([
     '-f', VIDEO_QUALITIES[quality] || VIDEO_QUALITIES.best,
     '--merge-output-format', 'mp4', // ffmpeg (ติดตั้งไว้ใน Dockerfile) ใช้ merge ตรงนี้
+    ...PRINT_TITLE_ARGS,
     '-o', outputTemplate,
     sourceUrl,
   ]);
-  return { id, fileName: `${id}.mp4` };
+  return { id, fileName: `${id}.mp4`, title: sanitizeTitleForFilename(stdout) };
 }
 
 module.exports = { downloadMedia, DOWNLOAD_DIR, VIDEO_QUALITIES };
