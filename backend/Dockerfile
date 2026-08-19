@@ -6,10 +6,13 @@
 
 FROM node:20-alpine
 
-# ffmpeg: yt-dlp ใช้ merge video+audio stream ที่แยกกันมา หรือแปลง audio
-#         เป็น mp3 ตอนเลือกโหมด "เสียงเท่านั้น"
-# curl:   ใช้ดาวน์โหลดตัว yt-dlp binary ในบรรทัดถัดไป (ใช้ครั้งเดียวตอน build)
-RUN apk add --no-cache ffmpeg curl python3
+# ffmpeg: รวมไฟล์วิดีโอ+เสียง หรือแปลงเป็น mp3 ให้ yt-dlp
+# curl: ใช้โหลดตัว yt-dlp binary ในขั้นตอนถัดไป
+# python3: yt-dlp เป็นไฟล์ python ต้องมี python3 ถึงจะรันได้
+# py3-pip: ใช้ติดตั้ง curl_cffi ในขั้นตอนถัดไป
+# deno: yt-dlp ใช้รัน JS ของ YouTube เพื่อถอดรหัส signature ของลิงก์ดาวน์โหลด
+#       (ไม่มี deno แล้ว YouTube จะเปลี่ยนไปให้ format คุณภาพต่ำ/พังง่ายกว่าเดิม)
+RUN apk add --no-cache ffmpeg curl python3 py3-pip deno
 
 # ดึง yt-dlp เวอร์ชันล่าสุดมาวางไว้ใน PATH ตรงๆ — ไฟล์นี้เป็น Python zipapp
 # จึงต้องมี python3 ในระบบด้วย (ตัว yt-dlp_linux standalone build มาสำหรับ
@@ -17,6 +20,15 @@ RUN apk add --no-cache ffmpeg curl python3
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
       -o /usr/local/bin/yt-dlp \
     && chmod +x /usr/local/bin/yt-dlp
+
+# curl_cffi: ให้ yt-dlp ใช้ --impersonate (แกล้งเป็นเบราว์เซอร์จริง) กันโดน
+# เว็บต้นทางบล็อกด้วย 403 (bot-detection)
+# - apk ไม่มีแพ็กเกจนี้ ต้องลงผ่าน pip
+# - ต้องใส่ --break-system-packages เพราะ python3 บน alpine ไม่ให้ pip install
+#   ตรงๆ (PEP 668) — ไม่มีปัญหาเพราะ image นี้ไม่มี pip package อื่นให้ชน
+# - ต้องล็อกเวอร์ชัน <0.16 เพราะ yt-dlp รุ่นนี้รองรับแค่ 0.10.x-0.15.x
+#   (เวอร์ชันใหม่กว่านั้นจะถูก yt-dlp มองว่า "ใช้ไม่ได้" ทันที)
+RUN pip install --break-system-packages --no-cache-dir "curl_cffi>=0.10,<0.16"
 
 WORKDIR /app
 
@@ -34,4 +46,8 @@ RUN mkdir -p downloads src/qrcodes
 
 EXPOSE 3000
 
-CMD ["node", "src/server.js"]
+# yt-dlp ใช้ self-update (-U) ทุกครั้งที่ container เริ่ม/restart แทนที่จะ
+# ค้างอยู่กับเวอร์ชันตอน build image — เว็บต้นทาง (YouTube ฯลฯ) เปลี่ยน
+# extractor บ่อย เวอร์ชันเก่าจึงพังง่าย ถ้า self-update ล้มเหลว (เช่น
+# ไม่มีเน็ตตอน build/start) ใช้ "|| true" ให้ backend เริ่มรันต่อได้ปกติ
+CMD ["sh", "-c", "yt-dlp -U || true; exec node src/server.js"]

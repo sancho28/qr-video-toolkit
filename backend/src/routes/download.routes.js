@@ -26,8 +26,8 @@ router.post('/', async (req, res) => {
   const recordId = insertResult.insertId;
 
   try {
-    const { fileName } = await downloadMedia(url, format, videoQuality || undefined);
-    await pool.query('UPDATE downloads SET file_name = ?, status = ? WHERE id = ?', [fileName, 'done', recordId]);
+    const { fileName, title } = await downloadMedia(url, format, videoQuality || undefined);
+    await pool.query('UPDATE downloads SET file_name = ?, title = ?, status = ? WHERE id = ?', [fileName, title, 'done', recordId]);
     res.json({ file_url: `/api/download/file/${fileName}` });
   } catch (err) {
     await pool.query('UPDATE downloads SET status = ? WHERE id = ?', ['failed', recordId]);
@@ -36,14 +36,23 @@ router.post('/', async (req, res) => {
 });
 
 // เสิร์ฟไฟล์วิดีโอ/เสียงที่ดาวน์โหลดเสร็จแล้ว เป็น attachment (บังคับ download
-// แทนการเล่นในเบราว์เซอร์)
-router.get('/file/:fileName', (req, res) => {
-  res.download(path.join(DOWNLOAD_DIR, req.params.fileName));
+// แทนการเล่นในเบราว์เซอร์) — ไฟล์บนดิสก์ชื่อเป็น UUID เสมอ (กันชื่อชนกัน/
+// อักขระแปลกๆ) แต่ถ้ามีชื่อวิดีโอจริงเก็บไว้ใน DB จะสั่งให้เบราว์เซอร์ save
+// เป็นชื่อนั้นแทนผ่าน Content-Disposition (อาร์กิวเมนต์ที่ 2 ของ res.download)
+router.get('/file/:fileName', async (req, res) => {
+  const { fileName } = req.params;
+  const [rows] = await pool.query('SELECT title FROM downloads WHERE file_name = ? LIMIT 1', [fileName]);
+  const title = rows[0]?.title;
+  const filePath = path.join(DOWNLOAD_DIR, fileName);
+  if (title) {
+    return res.download(filePath, `${title}${path.extname(fileName)}`);
+  }
+  res.download(filePath);
 });
 
 router.get('/history', async (req, res) => {
   const [rows] = await pool.query(
-    'SELECT id, source_url, format, quality, status, created_at FROM downloads ORDER BY id DESC LIMIT 20',
+    'SELECT id, source_url, format, quality, status, file_name, created_at FROM downloads ORDER BY id DESC LIMIT 20',
   );
   res.json(rows);
 });
