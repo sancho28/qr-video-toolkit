@@ -32,6 +32,13 @@ async function ensureSchema() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // ALTER ... ADD COLUMN IF NOT EXISTS เป็น syntax เฉพาะ MariaDB — ทำให้รันซ้ำ
+  // ได้แบบ idempotent เหมือน CREATE TABLE IF NOT EXISTS ด้านบน (จำเป็นเพราะ
+  // ตาราง downloads อาจมีอยู่แล้วจาก volume เดิมก่อนเพิ่มคอลัมน์นี้)
+  await pool.query(`
+    ALTER TABLE downloads ADD COLUMN IF NOT EXISTS quality VARCHAR(10) DEFAULT NULL
+  `);
 }
 
 // MariaDB อาจยัง initialize ไม่เสร็จตอน backend เริ่มรัน แม้ depends_on จะรอ
