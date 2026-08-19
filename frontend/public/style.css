@@ -59,6 +59,18 @@ input[type='text'] {
   font-size: 0.9rem;
 }
 
+select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #f1f5f9;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
 button {
   padding: 0.6rem 1.1rem;
   border-radius: 8px;

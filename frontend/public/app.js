@@ -60,10 +60,22 @@ const dlBtn = document.getElementById('dl-btn');
 const dlUrlInput = document.getElementById('dl-url');
 const dlResult = document.getElementById('dl-result');
 const dlHistoryList = document.getElementById('dl-history');
+const dlQualitySelect = document.getElementById('dl-quality');
+const formatRadios = document.querySelectorAll('input[name="format"]');
+
+// เลือกความชัดมีความหมายแค่ตอนดาวน์โหลดวิดีโอ — ซ่อน dropdown เวลาเลือก
+// "เสียงเท่านั้น" เพื่อไม่ให้ผู้ใช้เข้าใจผิดว่า mp3 เลือกความชัดได้
+function syncQualityVisibility() {
+  const format = document.querySelector('input[name="format"]:checked').value;
+  dlQualitySelect.style.display = format === 'video' ? '' : 'none';
+}
+formatRadios.forEach((radio) => radio.addEventListener('change', syncQualityVisibility));
+syncQualityVisibility();
 
 dlBtn.addEventListener('click', async () => {
   const url = dlUrlInput.value.trim();
   const format = document.querySelector('input[name="format"]:checked').value;
+  const quality = dlQualitySelect.value;
   if (!url) return;
 
   dlResult.textContent = 'กำลังดาวน์โหลด/แปลงไฟล์... (อาจใช้เวลาสักครู่ขึ้นอยู่กับความยาววิดีโอ)';
@@ -71,7 +83,7 @@ dlBtn.addEventListener('click', async () => {
     const res = await fetch('/api/download', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, format }),
+      body: JSON.stringify({ url, format, quality: format === 'video' ? quality : undefined }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'ดาวน์โหลดไม่สำเร็จ');
@@ -96,7 +108,8 @@ async function loadDlHistory() {
       if (row.status === 'done') {
         label.href = `/api/download/file/${row.file_name}`;
       }
-      label.textContent = `[${row.format}] ${row.source_url}`;
+      const qualitySuffix = row.quality ? ` ${row.quality === 'best' ? 'best' : row.quality + 'p'}` : '';
+      label.textContent = `[${row.format}${qualitySuffix}] ${row.source_url}`;
       li.appendChild(label);
 
       const status = document.createElement('span');
