@@ -17,11 +17,25 @@ fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 // แทนที่จะรอเงียบๆ — ไม่เกี่ยวกับการ bypass bot-detection แต่อย่างใด
 const FAIL_FAST_ARGS = ['--socket-timeout', '15', '--retries', '3', '--fragment-retries', '3'];
 
+// จำลอง TLS/HTTP fingerprint ของเบราว์เซอร์จริง (ผ่าน curl_cffi ที่ติดตั้งไว้
+// ใน Dockerfile) เพื่อลดโอกาสโดน bot-detection บล็อกด้วย 403 จากเว็บที่เช็ค
+// fingerprint ระดับ TLS handshake ไม่ใช่แค่ header ธรรมดา — ถ้ารันนอก Docker
+// (ตาม README) ต้อง `pip install curl_cffi` เองด้วย ไม่งั้น yt-dlp จะ error
+const IMPERSONATE_ARGS = ['--impersonate', 'chrome'];
+
+// YouTube เริ่มบังคับ "PO Token" (ต้องรันตัวสร้าง token แยกต่างหาก) กับ client
+// เริ่มต้นบาง client (เช่น android_vr, ios) ก่อนจะยอมให้ดาวน์โหลด ไม่งั้นได้
+// 403 — แต่ client "web_safari" (ใช้ HLS) และ "mweb" ยังไม่ต้องใช้ PO Token
+// (อ้างอิง yt-dlp wiki: PO-Token-Guide) จึงล็อกให้ yt-dlp ลองสอง client นี้
+// ก่อนแทนที่จะปล่อยให้เลือก client อัตโนมัติแล้วไปเจอ 403 กลางทาง — แลกมาด้วย
+// เพดานความชัดที่ต่ำกว่าปกติ (ไม่มี PO Token = ไม่มี format ความชัดสูงสุด)
+const EXTRACTOR_ARGS = ['--extractor-args', 'youtube:player_client=web_safari,mweb'];
+
 // เรียก yt-dlp binary ผ่าน child_process แทนการเรียก HTTP API ของแพลตฟอร์ม
 // เอง — yt-dlp จัดการ extractor เฉพาะเว็บ/merge stream/แปลงไฟล์ให้ทั้งหมด
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
-    const proc = spawn('yt-dlp', [...args, ...FAIL_FAST_ARGS]);
+    const proc = spawn('yt-dlp', [...args, ...FAIL_FAST_ARGS, ...IMPERSONATE_ARGS, ...EXTRACTOR_ARGS]);
     let stderr = '';
     proc.stderr.on('data', (chunk) => {
       stderr += chunk.toString();
